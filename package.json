@@ -1,17 +1,21 @@
 {
   "name": "edge-tts-webapp",
   "version": "1.0.0",
-   "type": "module",
-  "main": "index.js",
+  "type": "module",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=20.0.0 <22.0.0"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "edge-tts": "^1.0.1",
-    "express": "^5.2.1"
+    "edge-tts": "^1.4.0",
+    "express": "^4.18.2"
   }
 }
