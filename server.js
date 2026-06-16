@@ -1,29 +1,39 @@
-const express = require('express');
+import express from 'express';
+import { tts, getVoices } from 'edge-tts'; // ← import getVoices
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/test', (req, res) => {
-  res.send('Server is alive');
+// Serve the frontend
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Also list files in the public folder (for debugging)
-const fs = require('fs');
-app.get('/ls', (req, res) => {
-  fs.readdir('./public', (err, files) => {
-    if (err) return res.status(500).send(err.message);
-    res.json(files);
-  });
+// 🆕 List all available voices
+app.get('/api/voices', async (req, res) => {
+  try {
+    const voices = await getVoices();
+    res.json(voices);
+  } catch (err) {
+    console.error('Failed to fetch voices:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
-app.post('/synthesize', async (req, res) => {
+
+// TTS endpoint
+app.post('/api/tts', async (req, res) => {
   const { text, voice = 'en-US-JennyNeural' } = req.body;
   if (!text) return res.status(400).json({ error: 'Text required' });
 
   try {
-    // ✅ Dynamically import the ES module
-    const { tts } = await import('edge-tts');
     const audioBuffer = await tts(text, voice);
     res.set('Content-Type', 'audio/mpeg');
     res.send(audioBuffer);
@@ -33,4 +43,4 @@ app.post('/synthesize', async (req, res) => {
   }
 });
 
-app.listen(port, () => console.log(`Server running on port ${port}`));
+app.listen(port, () => console.log(`✅ Server running on port ${port}`));
