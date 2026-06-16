@@ -1,21 +1,88 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta charset="UTF-8">
+  <title>Edge TTS Web App</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; max-width: 600px; margin: auto; }
+    textarea { width: 100%; height: 100px; padding: 0.5rem; }
+    select, button { margin: 1rem 0; padding: 0.5rem; display: block; width: 100%; }
+    button { background: #0070f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    audio { width: 100%; margin-top: 1rem; }
+    label { font-weight: bold; display: block; margin-top: 0.5rem; }
+    #voiceSelect { width: 100%; }
+  </style>
+</head>
 <body>
-  <input id="text" placeholder="Enter text" />
-  <button id="speak">Speak</button>
-  <audio id="audio" controls></audio>
+  <h1>🔊 Edge TTS</h1>
+  <label for="textInput">Text</label>
+  <textarea id="textInput" placeholder="Type text to convert to speech...">Hello from Edge TTS</textarea>
+
+  <label for="voiceSelect">Voice</label>
+  <select id="voiceSelect"></select>
+
+  <button id="speakBtn">Generate Speech</button>
+  <audio id="audioPlayer" controls></audio>
+
   <script>
-    document.getElementById('speak').onclick = async () => {
-      const text = document.getElementById('text').value;
-      const res = await fetch('/synthesize', {
+    // Load voices when page loads
+    async function loadVoices() {
+      const select = document.getElementById('voiceSelect');
+      try {
+        const res = await fetch('/api/voices');
+        if (!res.ok) throw new Error('Failed to fetch voices');
+        const voices = await res.json();
+        voices.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.ShortName; // e.g. "en-US-JennyNeural"
+          opt.textContent = `${v.Name} (${v.Locale}) - ${v.Gender}`;
+          select.appendChild(opt);
+        });
+        // Pre-select a popular voice (optional)
+        select.value = 'en-US-JennyNeural';
+      } catch (err) {
+        console.error('Error loading voices:', err);
+        // Fallback to a default list if the API fails
+        const fallbackVoices = [
+          { ShortName: 'en-US-JennyNeural', Name: 'Jenny', Locale: 'en-US', Gender: 'Female' },
+          { ShortName: 'en-US-GuyNeural', Name: 'Guy', Locale: 'en-US', Gender: 'Male' },
+          { ShortName: 'en-GB-SoniaNeural', Name: 'Sonia', Locale: 'en-GB', Gender: 'Female' }
+        ];
+        fallbackVoices.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.ShortName;
+          opt.textContent = `${v.Name} (${v.Locale}) - ${v.Gender}`;
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    // Speak button handler
+    document.getElementById('speakBtn').onclick = async () => {
+      const text = document.getElementById('textInput').value.trim();
+      if (!text) return alert('Please enter text.');
+
+      const voice = document.getElementById('voiceSelect').value;
+      const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, voice })
       });
+
+      if (!res.ok) {
+        alert('Error: ' + (await res.text()));
+        return;
+      }
+
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      document.getElementById('audio').src = url;
+      const audio = document.getElementById('audioPlayer');
+      audio.src = url;
+      audio.play();
     };
+
+    // Load voices on page start
+    loadVoices();
   </script>
 </body>
 </html>
